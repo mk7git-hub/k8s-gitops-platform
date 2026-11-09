@@ -1,0 +1,28 @@
+# Two Argo CD Applications: the policies sync first (wave 0), then the workload (wave 1).
+# REPO_URL is replaced by the bootstrap script with this repository's URL.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: policies
+  namespace: argocd
+  annotations: { argocd.argoproj.io/sync-wave: "0" }
+spec:
+  project: default
+  source: { repoURL: REPO_URL, targetRevision: main, path: k8s/policies }
+  destination: { server: https://kubernetes.default.svc }
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: podinfo
+  namespace: argocd
+  annotations: { argocd.argoproj.io/sync-wave: "1" }
+spec:
+  project: default
+  source: { repoURL: REPO_URL, targetRevision: main, path: k8s/apps/podinfo }
+  destination: { server: https://kubernetes.default.svc, namespace: podinfo }
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=false]

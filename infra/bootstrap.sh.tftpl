@@ -1,0 +1,27 @@
+#!/bin/bash
+# Runs once at first boot. Logs: /var/log/k3s-bootstrap.log
+set -euxo pipefail
+exec > /var/log/k3s-bootstrap.log 2>&1
+
+# k3s: single-node Kubernetes with metrics-server and NetworkPolicy enforcement built in
+curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="${k3s_version}" sh -s - --write-kubeconfig-mode 0640
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+until kubectl get nodes | grep -q " Ready"; do sleep 5; done
+
+# Helm for Kyverno
+curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+# Kyverno (policy engine) first, so policies exist before workloads arrive
+/usr/local/bin/helm repo add kyverno https://kyverno.github.io/kyverno/
+/usr/local/bin/helm install kyverno kyverno/kyverno -n kyverno --create-namespace --version "${kyverno_chart}" --wait
+
+# Argo CD (GitOps controller)
+kubectl create namespace argocd
+kubectl apply -n argocd -f "https://raw.githubusercontent.com/argoproj/argo-cd/${argocd_version}/manifests/install.yaml"
+kubectl -n argocd rollout status deploy/argocd-server --timeout=600s
+
+# Point Argo CD at this repository; from here on, Git is the only way to change the cluster
+curl -fsSL "$(echo ${repo_url} | sed 's#\.git$##' | sed 's#github.com#raw.githubusercontent.com#')/main/k8s/argocd/apps.yaml" \
+  | sed "s#REPO_URL#${repo_url}#g" | kubectl apply -f -
+
+echo "BOOTSTRAP COMPLETE"

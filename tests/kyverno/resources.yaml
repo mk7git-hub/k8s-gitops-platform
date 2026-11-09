@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Pod
+metadata: { name: good, namespace: podinfo }
+spec:
+  securityContext: { runAsNonRoot: true }
+  containers:
+    - name: app
+      image: ghcr.io/stefanprodan/podinfo:6.7.0
+      resources: { requests: { cpu: 50m, memory: 64Mi }, limits: { memory: 128Mi } }
+---
+apiVersion: v1
+kind: Pod
+metadata: { name: privileged, namespace: podinfo }
+spec:
+  securityContext: { runAsNonRoot: true }
+  containers:
+    - name: app
+      image: ghcr.io/stefanprodan/podinfo:6.7.0
+      securityContext: { privileged: true }
+      resources: { requests: { cpu: 50m, memory: 64Mi }, limits: { memory: 128Mi } }
+---
+apiVersion: v1
+kind: Pod
+metadata: { name: latest, namespace: podinfo }
+spec:
+  securityContext: { runAsNonRoot: true }
+  containers:
+    - name: app
+      image: nginx:latest
+      resources: { requests: { cpu: 50m, memory: 64Mi }, limits: { memory: 128Mi } }
+---
+apiVersion: v1
+kind: Pod
+metadata: { name: nolimits, namespace: podinfo }
+spec:
+  securityContext: { runAsNonRoot: true }
+  containers:
+    - name: app
+      image: ghcr.io/stefanprodan/podinfo:6.7.0
+---
+apiVersion: v1
+kind: Pod
+metadata: { name: root, namespace: podinfo }
+spec:
+  containers:
+    - name: app
+      image: ghcr.io/stefanprodan/podinfo:6.7.0
+      resources: { requests: { cpu: 50m, memory: 64Mi }, limits: { memory: 128Mi } }
